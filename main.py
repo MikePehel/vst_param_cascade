@@ -5,7 +5,12 @@ import os
 from typing import Optional
 
 from gui_components import CCMappingFrame, CCValuesFrame
-from vst_automation import VSTAutomation, AutomationConfig, get_default_plugin_directory
+from vst_automation import (
+    VSTAutomation, 
+    AutomationConfig, 
+    get_default_plugin_directory,
+    find_vst_binary_in_bundle
+)
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -101,23 +106,30 @@ class VSTAutomationGUI(tk.Tk):
         self.run_btn.pack(side='left', padx=5)
             
     def browse_vst(self):
-        initial_dir = get_default_plugin_directory()
-        os.makedirs(initial_dir, exist_ok=True)
+            initial_dir = get_default_plugin_directory()
+            os.makedirs(initial_dir, exist_ok=True)
+                
+            filepath = filedialog.askopenfilename(
+                initialdir=initial_dir,
+                filetypes=[
+                    ("VST3 Plugins", "*.vst3"),
+                    ("VST3 Binaries", "*.so *.dll"),
+                    ("Audio Units", "*.component *.au"),
+                    ("All Files", "*.*")
+                ]
+            )
             
-        filepath = filedialog.askopenfilename(
-            initialdir=initial_dir,
-            filetypes=[
-                ("VST3 Plugins", "*.vst3"),
-                ("Audio Units", "*.component *.au"),
-                ("All Files", "*.*")
-            ]
-        )
-        
-        if filepath:
-            filepath = os.path.normpath(filepath)
-            logger.info(f"Selected VST path: {filepath}")
-            self.vst_path.set(filepath)
-            self.configure_btn.config(state='normal')
+            if filepath:
+                filepath = os.path.normpath(filepath)
+                # Try to find the actual VST binary if a bundle was selected
+                binary_path = find_vst_binary_in_bundle(filepath)
+                if binary_path:
+                    filepath = binary_path
+                    logger.info(f"Found VST binary in bundle: {filepath}")
+                
+                logger.info(f"Selected VST path: {filepath}")
+                self.vst_path.set(filepath)
+                self.configure_btn.config(state='normal')
 
     def configure_vst(self):
         try:
